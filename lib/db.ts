@@ -39,34 +39,50 @@ export interface User {
 // ==================== SUPABASE FUNCTIONS ====================
 
 async function getJobsFromSupabase(): Promise<Job[]> {
-  if (!supabase) return []
-  
-  const { data, error } = await supabase
-    .from('jobs')
-    .select('*')
-    .order('posted_date', { ascending: false })
-  
-  if (error) {
-    console.error('Error fetching jobs from Supabase:', error)
+  if (!supabase) {
+    console.error('Supabase client is null')
     return []
   }
   
-  // Transform Supabase format to our Job interface
-  return (data || []).map((job: any) => ({
-    id: job.id,
-    title: job.title,
-    company: job.company,
-    location: job.location,
-    type: job.type as 'government' | 'private',
-    postedDate: job.posted_date,
-    deadline: job.deadline || undefined,
-    description: job.description,
-    requirements: job.requirements || [],
-    salary: job.salary || undefined,
-    experience: job.experience || undefined,
-    applicationProcess: job.application_process || undefined,
-    contactInfo: job.contact_info || undefined,
-  }))
+  try {
+    const { data, error } = await supabase
+      .from('jobs')
+      .select('*')
+      .order('posted_date', { ascending: false })
+    
+    if (error) {
+      console.error('Error fetching jobs from Supabase:', error)
+      console.error('Error details:', JSON.stringify(error, null, 2))
+      return []
+    }
+    
+    if (!data) {
+      console.warn('No data returned from Supabase')
+      return []
+    }
+    
+    // Transform Supabase format to our Job interface
+    return (data || []).map((job: any) => ({
+      id: job.id,
+      title: job.title,
+      company: job.company,
+      location: job.location,
+      type: job.type as 'government' | 'private',
+      postedDate: job.posted_date,
+      deadline: job.deadline || undefined,
+      description: job.description,
+      requirements: job.requirements || [],
+      salary: job.salary || undefined,
+      experience: job.experience || undefined,
+      applicationProcess: job.application_process || undefined,
+      contactInfo: job.contact_info || undefined,
+    }))
+  } catch (err: any) {
+    console.error('Exception in getJobsFromSupabase:', err)
+    console.error('Error message:', err?.message)
+    console.error('Error stack:', err?.stack)
+    return []
+  }
 }
 
 async function getJobByIdFromSupabase(id: string): Promise<Job | undefined> {

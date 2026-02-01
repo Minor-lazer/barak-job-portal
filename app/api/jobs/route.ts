@@ -4,13 +4,36 @@ import { getJobs, createJob } from '@/lib/db'
 // GET /api/jobs - Get all jobs
 export async function GET() {
   try {
+    // Log environment check
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    
+    console.log('Environment check:', {
+      hasUrl: !!supabaseUrl,
+      hasKey: !!supabaseKey,
+      urlLength: supabaseUrl?.length || 0,
+      keyLength: supabaseKey?.length || 0,
+    })
+    
     const jobs = await getJobs()
+    
     // Jobs are already sorted by posted date (newest first) from database
-    return NextResponse.json({ success: true, data: jobs })
-  } catch (error) {
+    return NextResponse.json({ 
+      success: true, 
+      data: jobs,
+      count: jobs.length 
+    })
+  } catch (error: any) {
     console.error('Error fetching jobs:', error)
+    console.error('Error message:', error?.message)
+    console.error('Error stack:', error?.stack)
+    
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch jobs' },
+      { 
+        success: false, 
+        error: error?.message || 'Failed to fetch jobs',
+        details: process.env.NODE_ENV === 'development' ? error?.stack : undefined
+      },
       { status: 500 }
     )
   }
