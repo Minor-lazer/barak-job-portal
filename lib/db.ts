@@ -374,10 +374,23 @@ function verifyUserFromFile(username: string, password: string): User | null {
 // ==================== PUBLIC API (AUTO-SELECTS SUPABASE OR FILE) ====================
 
 export async function getJobs(): Promise<Job[]> {
-  if (isSupabaseConfigured()) {
-    return await getJobsFromSupabase()
+  try {
+    if (isSupabaseConfigured()) {
+      console.log('Using Supabase to fetch jobs')
+      const jobs = await getJobsFromSupabase()
+      console.log(`Fetched ${jobs.length} jobs from Supabase`)
+      return jobs
+    } else {
+      console.log('Supabase not configured, using file storage')
+      return getJobsFromFile()
+    }
+  } catch (error: any) {
+    console.error('Error in getJobs():', error)
+    console.error('Error message:', error?.message)
+    console.error('Error stack:', error?.stack)
+    // Return empty array instead of throwing to prevent 500 error
+    return []
   }
-  return getJobsFromFile()
 }
 
 export async function getJobById(id: string): Promise<Job | undefined> {

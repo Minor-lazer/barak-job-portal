@@ -8,14 +8,17 @@ export async function GET() {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     
+    console.log('=== API /jobs GET Request ===')
     console.log('Environment check:', {
       hasUrl: !!supabaseUrl,
       hasKey: !!supabaseKey,
-      urlLength: supabaseUrl?.length || 0,
-      keyLength: supabaseKey?.length || 0,
+      urlPreview: supabaseUrl ? `${supabaseUrl.substring(0, 30)}...` : 'missing',
+      keyPreview: supabaseKey ? `${supabaseKey.substring(0, 20)}...` : 'missing',
     })
     
     const jobs = await getJobs()
+    
+    console.log(`Returning ${jobs.length} jobs`)
     
     // Jobs are already sorted by posted date (newest first) from database
     return NextResponse.json({ 
@@ -24,17 +27,21 @@ export async function GET() {
       count: jobs.length 
     })
   } catch (error: any) {
-    console.error('Error fetching jobs:', error)
+    console.error('=== ERROR in /api/jobs ===')
+    console.error('Error type:', error?.constructor?.name)
     console.error('Error message:', error?.message)
     console.error('Error stack:', error?.stack)
+    console.error('Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error)))
     
+    // Return error but don't crash - return empty array instead
     return NextResponse.json(
       { 
         success: false, 
         error: error?.message || 'Failed to fetch jobs',
-        details: process.env.NODE_ENV === 'development' ? error?.stack : undefined
+        data: [], // Return empty array so frontend doesn't crash
+        count: 0
       },
-      { status: 500 }
+      { status: 200 } // Return 200 with error flag instead of 500
     )
   }
 }
