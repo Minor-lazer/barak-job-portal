@@ -7,9 +7,23 @@ const DATA_DIR = path.join(process.cwd(), 'data')
 const JOBS_FILE = path.join(DATA_DIR, 'jobs.json')
 const USERS_FILE = path.join(DATA_DIR, 'users.json')
 
-// Ensure data directory exists for file fallback
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true })
+// Ensure data directory exists for file fallback (only in non-serverless environments)
+// On Vercel/serverless, filesystem is read-only, so skip this
+function ensureDataDir() {
+  // Check if we're in a serverless environment
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    return false // Can't write to filesystem in serverless
+  }
+  
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true })
+    }
+    return true
+  } catch (error) {
+    console.warn('Cannot create data directory (serverless environment):', error)
+    return false
+  }
 }
 
 export interface Job {
@@ -249,6 +263,11 @@ async function verifyUserFromSupabase(username: string, password: string): Promi
 // ==================== FILE STORAGE FUNCTIONS (FALLBACK) ====================
 
 function initializeFileData() {
+  // Don't initialize file data in serverless environments
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    return
+  }
+  
   if (!fs.existsSync(JOBS_FILE)) {
     const defaultJobs: Job[] = [
       {
@@ -311,10 +330,23 @@ function initializeFileData() {
   }
 }
 
-initializeFileData()
+// Only initialize file data if not in serverless environment
+if (!process.env.VERCEL && !process.env.AWS_LAMBDA_FUNCTION_NAME) {
+  ensureDataDir()
+  initializeFileData()
+}
 
 function getJobsFromFile(): Job[] {
+  // In serverless environments, file storage is not available
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    console.warn('File storage not available in serverless environment. Supabase must be configured.')
+    return []
+  }
+  
   try {
+    if (!fs.existsSync(JOBS_FILE)) {
+      return []
+    }
     const data = fs.readFileSync(JOBS_FILE, 'utf-8')
     return JSON.parse(data)
   } catch (error) {
@@ -324,11 +356,17 @@ function getJobsFromFile(): Job[] {
 }
 
 function getJobByIdFromFile(id: string): Job | undefined {
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    return undefined
+  }
   const jobs = getJobsFromFile()
   return jobs.find(job => job.id === id)
 }
 
 function createJobInFile(job: Omit<Job, 'id' | 'postedDate'>): Job {
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    throw new Error('File storage not available in serverless environment. Supabase must be configured.')
+  }
   const jobs = getJobsFromFile()
   const newJob: Job = {
     ...job,
@@ -341,6 +379,9 @@ function createJobInFile(job: Omit<Job, 'id' | 'postedDate'>): Job {
 }
 
 function updateJobInFile(id: string, updates: Partial<Job>): Job | null {
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    throw new Error('File storage not available in serverless environment. Supabase must be configured.')
+  }
   const jobs = getJobsFromFile()
   const index = jobs.findIndex(job => job.id === id)
   if (index === -1) return null
@@ -351,6 +392,9 @@ function updateJobInFile(id: string, updates: Partial<Job>): Job | null {
 }
 
 function deleteJobFromFile(id: string): boolean {
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    throw new Error('File storage not available in serverless environment. Supabase must be configured.')
+  }
   const jobs = getJobsFromFile()
   const filtered = jobs.filter(job => job.id !== id)
   if (filtered.length === jobs.length) return false
@@ -360,7 +404,13 @@ function deleteJobFromFile(id: string): boolean {
 }
 
 function verifyUserFromFile(username: string, password: string): User | null {
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    return null
+  }
   try {
+    if (!fs.existsSync(USERS_FILE)) {
+      return null
+    }
     const data = fs.readFileSync(USERS_FILE, 'utf-8')
     const users: User[] = JSON.parse(data)
     const user = users.find(user => user.username === username && user.password === password)
@@ -381,7 +431,13 @@ export async function getJobs(): Promise<Job[]> {
       console.log(`Fetched ${jobs.length} jobs from Supabase`)
       return jobs
     } else {
-      console.log('Supabase not configured, using file storage')
+      // In serverless (Vercel), file storage is not available
+      if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+        console.error('ERROR: Supabase not configured and file storage unavailable in serverless environment!')
+        console.error('Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables')
+        return []
+      }
+      console.log('Supabase not configured, using file storage (local only)')
       return getJobsFromFile()
     }
   } catch (error: any) {
