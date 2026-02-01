@@ -1,0 +1,69 @@
+🚀 DEPLOYMENT INSTRUCTIONS - Barak Job Portal
+=============================================
+
+✅ STEP 1: Push to GitHub
+--------------------------
+1. Create a new repository on GitHub:
+   - Go to: https://github.com/new
+   - Name: barak-job-portal
+   - Don't initialize with README
+   - Click "Create repository"
+
+2. Run these commands (replace YOUR_USERNAME):
+   
+   git remote add origin https://github.com/YOUR_USERNAME/barak-job-portal.git
+   git branch -M main
+   git push -u origin main
+
+
+✅ STEP 2: Deploy to Vercel
+----------------------------
+1. Go to: https://vercel.com
+2. Sign up/Login (use GitHub)
+3. Click "Add New Project"
+4. Import your "barak-job-portal" repository
+5. Click "Deploy" (settings are auto-detected)
+6. Wait 2-3 minutes
+
+
+✅ STEP 3: Add Environment Variables (IMPORTANT!)
+--------------------------------------------------
+In Vercel Dashboard:
+1. Go to your project → Settings → Environment Variables
+2. Add these 3 variables:
+
+   NEXT_PUBLIC_SUPABASE_URL
+   = https://ehrhwnihiixkoslogxqa.supabase.co
+
+   NEXT_PUBLIC_SUPABASE_ANON_KEY
+   = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVocmh3bmloaWl4a29zbG9neHFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5MjgwMDYsImV4cCI6MjA4NTUwNDAwNn0.XgK5O48MTfO7Xe9T6xBxZqYwgOzkBztyYasMXofzK-I
+
+   ADMIN_EMAIL
+   = your-email@example.com
+
+3. After adding, go to Deployments → Click "..." → Redeploy
+
+
+✅ STEP 4: Test Your Live Site
+-------------------------------
+1. Visit your Vercel URL (e.g., https://barak-job-portal.vercel.app)
+2. Test browsing jobs
+3. Test posting a job
+4. Check Supabase to verify jobs are saving
+5. Test admin panel login
+
+
+🎉 Your website is now live!
+
+
+📝 Notes:
+- Your Supabase credentials are already configured
+- Jobs will save to Supabase automatically
+- Job submissions will appear in Vercel function logs
+- Admin panel: /admin/login (admin/admin123)
+
+
+🆘 Troubleshooting:
+- Build fails? Check Vercel build logs
+- Database not working? Verify environment variables are set
+- Jobs not appearing? Check Supabase RLS policies
